@@ -13,14 +13,11 @@ const getTasks = asyncHandler(async (req, res) => {
     throw new Error("User not found.");
   }
 
-  if (board.user.toString() !== user.id) {
-    res.status(401);
-    throw new Error("User not authorized.");
-  }
-
   try {
-    const board = await Board.find({ user: user.id, id: req.params.id });
-    const tasks = board.tasks;
+    const tasks = await Board.findOne({
+      user: user.id,
+      id: req.params.id,
+    }).select("tasks");
     return res.status(200).json({ tasks });
   } catch (error) {
     return res.status(400).json({ error: error });
