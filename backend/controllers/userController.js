@@ -9,18 +9,21 @@ const jwt = require("jsonwebtoken");
 const addUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
   if (!username) {
+    res.status(400);
     throw new Error("Please provide a username field.");
   }
   if (!email) {
+    res.status(400);
     throw new Error("Please provide a email field.");
   }
   if (!password) {
+    res.status(400);
     throw new Error("Please provide a password field.");
   }
 
-  const user = await User.findOne({ email });
+  const userExists = await User.findOne({ email });
 
-  if (user) {
+  if (userExists) {
     res.status(400);
     throw new Error("User already exists.");
   }

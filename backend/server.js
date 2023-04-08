@@ -15,7 +15,8 @@ app.use(express.urlencoded({ extended: false }));
 // Connect to MongoDB database
 connectDB();
 
-app.use("/api/boards", require("./routes/tasksRoutes"));
+app.use("/api/boards", require("./routes/boardRoutes"));
+app.use("/api/tasks", require("./routes/tasksRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 
 // Error handling middleware

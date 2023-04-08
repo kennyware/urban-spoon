@@ -1,31 +1,10 @@
 const asyncHandler = require("express-async-handler");
 const Board = require("../models/boardsModel");
 const User = require("../models/userModel");
-
-// @desc Get Tasks
-// @route GET /api/boards/:id/tasks
-
-const getTasks = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id);
-
-  if (!user) {
-    res.status(401);
-    throw new Error("User not found.");
-  }
-
-  try {
-    const tasks = await Board.findOne({
-      user: user.id,
-      id: req.params.id,
-    }).select("tasks");
-    return res.status(200).json({ tasks });
-  } catch (error) {
-    return res.status(400).json({ error: error });
-  }
-});
+const Task = require("../models/taskModel");
 
 // @desc Add Task
-// @route POST /api/boards/:id/tasks
+// @route POST /api/tasks/
 
 const addTask = asyncHandler(async (req, res) => {
   if (!req.body.title) {
@@ -33,8 +12,6 @@ const addTask = asyncHandler(async (req, res) => {
     throw new Error("Please add a title field");
   }
 
-  const board = await Board.findById(req.params.id);
-
   const user = await User.findById(req.user.id);
 
   if (!user) {
@@ -42,38 +19,34 @@ const addTask = asyncHandler(async (req, res) => {
     throw new Error("User not found.");
   }
 
-  if (board.user.toString() !== user.id) {
-    res.status(401);
-    throw new Error("User not authorized.");
-  }
-
-  const task = {
-    title: req.body.title,
-    description: req.body.description ? req.body.description : "",
-    status: req.body.status,
-    subtasks: req.body.subtasks,
-  };
-
-  board.tasks.push(task);
-  const updated = await board.save();
-
-  return res.status(200).json({ updated });
-});
-
-// @desc Update task
-// @route PUT /api/boards/:id/tasks?taskId
-
-const updateTask = asyncHandler(async (req, res) => {
-  const boardId = req.params.id;
-  const taskId = req.query.taskId;
-
-  const board = await Board.findById(boardId);
-  const task = board.tasks.id(taskId);
+  const board = await Board.findById(req.body.board);
 
   if (!board) {
     res.status(400);
     throw new Error("Board not found!");
   }
+
+  const task = await Task.create({
+    board: board._id,
+    title: req.body.title,
+    description: req.body.description ? req.body.description : "",
+    status: req.body.status,
+    subtasks: req.body.subtasks,
+  });
+
+  board.tasks.push(task._id);
+  await board.save();
+
+  return res.status(200).json(task);
+});
+
+// @desc Update task
+// @route PUT /api/tasks/:id
+
+const updateTask = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+
+  const task = await Task.findById(id);
 
   if (!task) {
     res.status(400);
@@ -85,11 +58,6 @@ const updateTask = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(401);
     throw new Error("User not found.");
-  }
-
-  if (board.user.toString() !== user.id) {
-    res.status(401);
-    throw new Error("User not authorized.");
   }
 
   // Change fields based on what fields are recieved
@@ -101,20 +69,20 @@ const updateTask = asyncHandler(async (req, res) => {
     }
   }
 
-  const updated = await board.save();
+  const updatedTask = await task.save();
 
-  return res.json(updated);
+  return res.json(updatedTask);
 });
 
 // @desc Delete Task
-// @route DELETE /api/boards/:id/tasks?taskId
+// @route DELETE /api/tasks/:id
 
 const deleteTask = asyncHandler(async (req, res) => {
-  const boardId = req.params.id;
-  const taskId = req.query.taskId;
+  const taskId = req.params.id;
 
-  const board = await Board.findById(boardId);
-  const task = board.tasks.id(taskId);
+  const task = await Task.findById(taskId);
+
+  const board = await Board.findById(task.board);
 
   if (!board) {
     res.status(400);
@@ -138,15 +106,15 @@ const deleteTask = asyncHandler(async (req, res) => {
     throw new Error("User not authorized.");
   }
 
+  await Task.findByIdAndDelete(taskId);
+
   await board.updateOne({
     $pull: {
-      tasks: {
-        _id: taskId,
-      },
+      tasks: taskId,
     },
   });
 
-  res.status(200).json({ success: true, deleted: taskId });
+  return res.status(200).json({ success: true, deleted: taskId });
 });
 
 // @desc Add Board
@@ -165,7 +133,11 @@ const addBoard = asyncHandler(async (req, res) => {
     throw new Error("Please add a name field");
   }
 
-  const board = await Board.create({ user: req.user._id, name: req.body.name });
+  const board = await Board.create({
+    user: req.user._id,
+    name: req.body.name,
+  });
+
   return res.status(200).json({ response: board });
 });
 
@@ -180,12 +152,23 @@ const getBoards = asyncHandler(async (req, res) => {
     throw new Error("User not found.");
   }
 
-  try {
-    const boards = await Board.find({ user: req.user._id });
-    return res.status(200).json({ response: boards });
-  } catch (error) {
-    return res.status(400).json({ error: error });
+  const boards = await Board.find({ user: req.user._id });
+  return res.status(200).json(boards);
+});
+
+// @desc Get Board
+// @route GET /api/boards/:id
+
+const getBoard = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user) {
+    res.status(401);
+    throw new Error("User not found.");
   }
+
+  const board = await Board.findById(req.params.id).populate("tasks");
+  return res.status(200).json(board);
 });
 
 // @desc Update Board
@@ -211,18 +194,10 @@ const updateBoard = asyncHandler(async (req, res) => {
     throw new Error("User not authorized.");
   }
 
-  try {
-    const updatedBoard = await Board.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-      }
-    );
-    return res.status(200).json(updatedBoard);
-  } catch (error) {
-    return res.status(400).json({ error: error });
-  }
+  const updatedBoard = await Board.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  return res.status(200).json(updatedBoard);
 });
 
 // @desc Delete Board
@@ -247,21 +222,19 @@ const deleteBoard = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("User not authorized.");
   }
-  try {
-    await board.remove();
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    return res.status(400).json({ error: error });
-  }
+
+  await Board.findById(req.params.id);
+  await Task.deleteMany({ board: req.params.id });
+  return res.status(200).json({ success: true });
 });
 
 module.exports = {
-  getTasks,
   addTask,
   updateTask,
   deleteTask,
   addBoard,
   getBoards,
+  getBoard,
   updateBoard,
   deleteBoard,
 };
