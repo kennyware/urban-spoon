@@ -138,7 +138,7 @@ const addBoard = asyncHandler(async (req, res) => {
     name: req.body.name,
   });
 
-  return res.status(200).json({ response: board });
+  return res.status(200).json(board);
 });
 
 // @desc Get Boards
@@ -223,8 +223,9 @@ const deleteBoard = asyncHandler(async (req, res) => {
     throw new Error("User not authorized.");
   }
 
-  await Board.findById(req.params.id);
   await Task.deleteMany({ board: req.params.id });
+
+  await Board.findByIdAndDelete(req.params.id);
   return res.status(200).json({ success: true });
 });
 
