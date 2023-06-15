@@ -7,11 +7,7 @@ const jwt = require("jsonwebtoken");
 // @route POST /api/users
 
 const addUser = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
-  if (!username) {
-    res.status(400);
-    throw new Error("Please provide a username field.");
-  }
+  const { email, password } = req.body;
   if (!email) {
     res.status(400);
     throw new Error("Please provide a email field.");
@@ -33,7 +29,6 @@ const addUser = asyncHandler(async (req, res) => {
 
   try {
     const response = await User.create({
-      username,
       email,
       password: hashedPwd,
     });
@@ -41,7 +36,6 @@ const addUser = asyncHandler(async (req, res) => {
     if (response) {
       return res.status(200).json({
         _id: response._id,
-        username: response.username,
         email: response.email,
         token: generateJwt(response._id),
       });
@@ -52,11 +46,10 @@ const addUser = asyncHandler(async (req, res) => {
 });
 
 const getMe = asyncHandler(async (req, res) => {
-  const { _id, username, email } = await User.findById(req.user.id);
+  const { _id, email } = await User.findById(req.user.id);
 
   return res.json({
     id: _id,
-    username,
     email,
   });
 });
@@ -82,7 +75,6 @@ const loginUser = asyncHandler(async (req, res) => {
   if (user && (await bcrypt.compare(password, user.password))) {
     return res.json({
       _id: user._id,
-      username: user.username,
       email: user.email,
       token: generateJwt(user._id),
     });
