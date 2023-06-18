@@ -12,7 +12,7 @@ import {
 import { ReactComponent as LeftArrowIcon } from "../../../assets/arrow-left-solid.svg";
 
 import { useLogin } from "../../hooks/useLogin";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -58,6 +58,9 @@ const Login = () => {
           Submit
         </SubmitButton>
       </Form>
+      <p>
+        Don't have an account? <Link to={"/register"}>Sign up here.</Link>
+      </p>
     </Container>
   );
 };

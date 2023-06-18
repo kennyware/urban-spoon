@@ -23,6 +23,7 @@ export const Container = styled.div`
 export const Form = styled.form`
   width: 400px;
   margin-top: 40px;
+  margin-bottom: 20px;
 `;
 
 export const InputGroup = styled.div`

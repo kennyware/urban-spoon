@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Container,
   Form,
@@ -9,22 +9,34 @@ import {
   ErrorBox,
 } from "./Signup.styled";
 import { ReactComponent as LeftArrowIcon } from "../../../assets/arrow-left-solid.svg";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import { useSignup } from "../../hooks/useSignup";
 
 const Signup = () => {
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [errorText, setErrorText] = useState("");
   const navigate = useNavigate();
 
   const { signup, isLoading, error } = useSignup();
 
+  useEffect(() => {
+    if (error) {
+      setErrorText(error);
+    }
+  }, [error]);
+
   const submitForm = async (e) => {
     e.preventDefault();
 
-    await signup(username, email, password);
+    if (password !== password2) {
+      setErrorText("Passwords do not match.");
+      return;
+    }
+
+    await signup(email, password);
   };
 
   return (
@@ -34,16 +46,7 @@ const Signup = () => {
       </button>
       <h1>Sign up</h1>
       <Form onSubmit={submitForm}>
-        {error && <ErrorBox>{error}</ErrorBox>}
-        <InputGroup>
-          <Label>Username</Label>
-          <TextBox
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </InputGroup>
+        {errorText && <ErrorBox>{errorText}</ErrorBox>}
         <InputGroup>
           <Label>Email</Label>
           <TextBox
@@ -62,10 +65,22 @@ const Signup = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
         </InputGroup>
+        <InputGroup>
+          <Label>Confirm Password</Label>
+          <TextBox
+            type="password"
+            placeholder="Confirm Password"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+          />
+        </InputGroup>
         <SubmitButton type="submit" disabled={isLoading}>
           Submit
         </SubmitButton>
       </Form>
+      <p>
+        Already have an account? <Link to={"/login"}>Log in here.</Link>
+      </p>
     </Container>
   );
 };
